@@ -87,8 +87,17 @@ class RenderPipeline:
         # Build manim command
         cmd = ['manim']
 
+        # Reverse map resolution back to the character manim expects (l, m, h, k)
+        rev_quality_map = {
+            '480p15': 'l',
+            '720p30': 'm',
+            '1080p60': 'h',
+            '2160p60': 'k'
+        }
+        manim_q = rev_quality_map.get(self.quality, 'h')
+        
         # Quality parameter
-        cmd.extend(['-q', self.quality[0]])  # l/m/h/k
+        cmd.extend(['-q', manim_q])  # l/m/h/k
 
         # Preview parameter
         if self.preview:
