@@ -1,17 +1,17 @@
 #!/usr/bin/env python3
 """
-Tutor 技能项目初始化脚本
+Tutor Skill Project Initialization Script
 
-功能：
-1. 检查依赖环境（uv, manim, edge-tts等）
-2. 创建项目目录结构
-3. 拷贝脚手架模板
-4. 生成示例CSV文件
+Features:
+1. Check dependencies (uv, manim, edge-tts, etc.)
+2. Create project directory structure
+3. Copy scaffold templates
+4. Generate example CSV file
 
-使用：
-    python init.py [项目目录]
+Usage:
+    python init.py [project_directory]
 
-默认在当前目录创建项目结构。
+Creates the project structure in the current directory by default.
 """
 
 import os
@@ -21,12 +21,12 @@ import subprocess
 from pathlib import Path
 
 
-# ========== 配置 ==========
+# ========== Configuration ==========
 SKILL_DIR = Path(__file__).parent.resolve()
 TEMPLATES_DIR = SKILL_DIR / "templates"
 SCRIPTS_DIR = SKILL_DIR / "scripts"
 
-# 依赖检查配置
+# Dependency check configuration
 DEPENDENCIES = {
     "uv": {
         "check": ["uv", "--version"],
@@ -45,20 +45,20 @@ DEPENDENCIES = {
     },
     "ffmpeg": {
         "check": ["ffmpeg", "-version"],
-        "install_hint": "brew install ffmpeg (macOS) 或 apt install ffmpeg (Linux)",
-        "required": False,  # 可选但推荐
+        "install_hint": "brew install ffmpeg (macOS) or apt install ffmpeg (Linux)",
+        "required": False,  # Optional but recommended
     },
 }
 
-# 项目目录结构
+# Project directory structure
 PROJECT_STRUCTURE = {
-    "audio": "音频文件目录",
-    "media": "Manim渲染输出",
-    "assets": "静态资源",
+    "audio": "Audio files directory",
+    "media": "Manim render output",
+    "assets": "Static assets",
 }
 
 
-# ========== 颜色输出 ==========
+# ========== Color Output ==========
 class Colors:
     GREEN = "\033[92m"
     YELLOW = "\033[93m"
@@ -83,9 +83,9 @@ def info(msg):
     print(f"{Colors.BLUE}ℹ{Colors.RESET} {msg}")
 
 
-# ========== 依赖检查 ==========
+# ========== Dependency Check ==========
 def check_dependency(name, config):
-    """检查单个依赖"""
+    """Check a single dependency"""
     try:
         result = subprocess.run(
             config["check"],
@@ -100,19 +100,19 @@ def check_dependency(name, config):
         pass
 
     if config["required"]:
-        error(f"{name}: 未安装 (必需)")
-        info(f"  安装: {config['install_hint']}")
+        error(f"{name}: Not installed (Required)")
+        info(f"  Install: {config['install_hint']}")
     else:
-        warn(f"{name}: 未安装 (可选)")
-        info(f"  安装: {config['install_hint']}")
+        warn(f"{name}: Not installed (Optional)")
+        info(f"  Install: {config['install_hint']}")
 
     return not config["required"]
 
 
 def check_all_dependencies():
-    """检查所有依赖"""
+    """Check all dependencies"""
     print("=" * 50)
-    print("检查依赖环境")
+    print("Checking Dependencies")
     print("=" * 50)
 
     all_ok = True
@@ -124,11 +124,11 @@ def check_all_dependencies():
     return all_ok
 
 
-# ========== 项目初始化 ==========
+# ========== Project Initialization ==========
 def create_directory_structure(project_dir):
-    """创建项目目录结构"""
+    """Create project directory structure"""
     print("=" * 50)
-    print("创建项目目录")
+    print("Creating Project Directories")
     print("=" * 50)
 
     project_path = Path(project_dir)
@@ -143,67 +143,67 @@ def create_directory_structure(project_dir):
 
 
 def copy_templates(project_dir):
-    """拷贝脚手架模板"""
+    """Copy scaffold templates"""
     print("=" * 50)
-    print("拷贝模板文件")
+    print("Copying Template Files")
     print("=" * 50)
 
     project_path = Path(project_dir)
 
-    # 拷贝 script_scaffold.py
+    # Copy script_scaffold.py
     scaffold_src = TEMPLATES_DIR / "script_scaffold.py"
     scaffold_dst = project_path / "script.py"
 
     if scaffold_src.exists():
         shutil.copy2(scaffold_src, scaffold_dst)
-        ok(f"script.py - 脚手架模板 (从 script_scaffold.py)")
-        info("  提示: 根据分镜实现 TODO 部分")
+        ok(f"script.py - Scaffold template (from script_scaffold.py)")
+        info("  Hint: Implement the TODO sections based on the storyboard")
     else:
-        error(f"模板不存在: {scaffold_src}")
+        error(f"Template not found: {scaffold_src}")
 
-    # 拷贝 script_example.py 作为参考
+    # Copy script_example.py as reference
     example_src = TEMPLATES_DIR / "script_example.py"
     example_dst = project_path / "script_example.py"
 
     if example_src.exists():
         shutil.copy2(example_src, example_dst)
-        ok(f"script_example.py - 完整示例 (参考用)")
+        ok(f"script_example.py - Full example (for reference)")
     else:
-        warn("script_example.py 模板不存在")
+        warn("script_example.py template not found")
 
     print()
 
 
 def generate_csv_template(project_dir):
-    """生成示例CSV文件"""
+    """Generate example CSV file"""
     print("=" * 50)
-    print("生成音频列表模板")
+    print("Generating Audio List Template")
     print("=" * 50)
 
     project_path = Path(project_dir)
     csv_path = project_path / "audio_list.csv"
 
     csv_content = """filename,text
-audio_001_开场.wav,"大家好！今天我们来学习三角形内角和定理。"
-audio_002_画三角形.wav,"首先，让我们画一个任意三角形。"
-audio_003_标角度.wav,"标记三角形的三个内角。"
-audio_004_画平行线.wav,"过顶点作底边的平行线。"
-audio_005_证明.wav,"利用平行线性质进行证明。"
-audio_006_总结.wav,"总结：三角形内角和等于180度。"
+audio_001_intro.wav,"Hello everyone! Today we will learn about the triangle angle sum theorem."
+audio_002_draw_triangle.wav,"First, let's draw an arbitrary triangle."
+audio_003_mark_angles.wav,"Mark the three interior angles of the triangle."
+audio_004_draw_parallel.wav,"Draw a line parallel to the base passing through the top vertex."
+audio_005_proof.wav,"Use the properties of parallel lines for the proof."
+audio_006_summary.wav,"Summary: The sum of the interior angles of a triangle is 180 degrees."
 """
 
     if not csv_path.exists():
         csv_path.write_text(csv_content, encoding='utf-8')
-        ok(f"audio_list.csv - 音频列表模板")
-        info("  使用: python {}/scripts/generate_tts.py audio_list.csv ./audio".format(SKILL_DIR))
+        ok(f"audio_list.csv - Audio list template")
+        info("  Usage: python {}/scripts/generate_tts.py audio_list.csv ./audio".format(SKILL_DIR))
     else:
-        warn("audio_list.csv 已存在，跳过")
+        warn("audio_list.csv already exists, skipping")
 
     print()
 
 
 def generate_gitignore(project_dir):
-    """生成 .gitignore 文件"""
+    """Generate .gitignore file"""
     project_path = Path(project_dir)
     gitignore_path = project_path / ".gitignore"
 
@@ -230,51 +230,52 @@ audio/*.mp3
         ok(".gitignore")
 
 
-# ========== 主流程 ==========
+# ========== Main Process ==========
 def main():
-    # 解析参数
+    # Parse arguments
     project_dir = sys.argv[1] if len(sys.argv) > 1 else "."
 
     print("\n" + "=" * 50)
-    print("Tutor 技能 - 项目初始化")
+    print("Tutor Skill - Project Initialization")
     print("=" * 50)
-    print(f"项目目录: {Path(project_dir).resolve()}")
-    print(f"技能目录: {SKILL_DIR}")
+    print(f"Project Directory: {Path(project_dir).resolve()}")
+    print(f"Skill Directory: {SKILL_DIR}")
     print()
 
-    # 1. 检查依赖
+    # 1. Check dependencies
     if not check_all_dependencies():
         print("=" * 50)
-        error("依赖检查失败，请先安装必需依赖")
+        error("Dependency check failed. Please install required dependencies first.")
         print()
-        print("快速安装:")
+        print("Quick Install:")
         print("  uv pip install manim edge-tts mutagen")
         sys.exit(1)
 
-    # 2. 创建目录结构
+    # 2. Create directory structure
     create_directory_structure(project_dir)
 
-    # 3. 拷贝模板
+    # 3. Copy templates
     copy_templates(project_dir)
 
-    # 4. 生成CSV
+    # 4. Generate CSV
     generate_csv_template(project_dir)
 
-    # 5. 生成gitignore
+    # 5. Generate gitignore
     generate_gitignore(project_dir)
 
-    # 完成
+    # Done
     print("=" * 50)
-    ok("项目初始化完成！")
+    ok("Project initialization complete!")
     print("=" * 50)
     print()
-    print("下一步:")
-    print("  1. 编辑 audio_list.csv 填写对白")
-    print("  2. 生成音频: python {}/scripts/generate_tts.py audio_list.csv ./audio".format(SKILL_DIR))
-    print("  3. 编辑 script.py 实现动画")
-    print("  4. 渲染视频: manim -pqh script.py MathScene")
+    print("Next steps:")
+    print("  1. Edit audio_list.csv to fill in the dialogues")
+    print("  2. Generate audio: python {}/scripts/generate_tts.py audio_list.csv ./audio".format(SKILL_DIR))
+    print("  3. Edit script.py to implement animations")
+    print("  4. Render video: manim -pqh script.py MathScene")
     print()
 
 
 if __name__ == "__main__":
     main()
+

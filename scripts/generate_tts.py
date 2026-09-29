@@ -1,27 +1,27 @@
 #!/usr/bin/env python3
 """
-TTS 生成脚本
+TTS Generation Script
 
-功能：
-- 从 CSV 文件读取对白列表
-- 使用 Edge TTS (xiaoxiao 语音) 生成音频
-- 捕获 WordBoundary 事件，生成句级同步点 (sync_points)
-- 输出到指定目录
-- 生成 audio_info.json（含 sync_points）供 Manim 动画精确对齐
+Features:
+- Read dialogue list from CSV file
+- Generate audio using Edge TTS (xiaoxiao voice)
+- Capture WordBoundary events to generate sentence-level sync points (sync_points)
+- Output to specified directory
+- Generate audio_info.json (including sync_points) for precise Manim animation alignment
 
-CSV 格式：
+CSV Format:
     filename,text
-    audio_001_开场.wav,"大家好，今天我们来学习..."
-    audio_002_介绍.wav,"首先，让我们来看这个图形..."
+    audio_001_intro.wav,"Hello everyone, today we will learn..."
+    audio_002_intro.wav,"First, let's look at this figure..."
 
-使用：
+Usage:
     python generate_tts.py audio_list.csv ./audio --voice xiaoxiao
 
-支持的声音：
-    xiaoxiao (晓晓，女声，默认)
-    xiaoyi (晓伊，女声)
-    yunyang (云扬，男声)
-    yunjian (云健，男声)
+Supported voices:
+    xiaoxiao (female, default)
+    xiaoyi (female)
+    yunyang (male)
+    yunjian (male)
 """
 
 import sys
@@ -32,33 +32,33 @@ import re
 import asyncio
 from pathlib import Path
 
-# 检查 edge-tts
+# Check edge-tts
 try:
     import edge_tts
 except ImportError:
-    print("Error: edge-tts 未安装")
-    print("请运行: uv pip install edge-tts")
+    print("Error: edge-tts is not installed")
+    print("Please run: uv pip install edge-tts")
     sys.exit(1)
 
 
-# 声音映射表
+# Voice mapping
 VOICE_MAP = {
-    'xiaoxiao': 'zh-CN-XiaoxiaoNeural',      # 晓晓，女声，默认
-    'xiaoyi': 'zh-CN-XiaoyiNeural',          # 晓伊，女声
-    'yunyang': 'zh-CN-YunyangNeural',        # 云扬，男声
-    'yunjian': 'zh-CN-YunjianNeural',        # 云健，男声
-    'xiaoxiao-dialect': 'zh-CN-XiaoxiaoNeural',  # 晓晓方言
+    'xiaoxiao': 'zh-CN-XiaoxiaoNeural',      # Xiaoxiao, female, default
+    'xiaoyi': 'zh-CN-XiaoyiNeural',          # Xiaoyi, female
+    'yunyang': 'zh-CN-YunyangNeural',        # Yunyang, male
+    'yunjian': 'zh-CN-YunjianNeural',        # Yunjian, male
+    'xiaoxiao-dialect': 'zh-CN-XiaoxiaoNeural',  # Xiaoxiao dialect
     'xiaoxiao-multilingual': 'zh-CN-XiaoxiaoMultilingualNeural',
 }
 
 
 async def generate_audio(text, output_path, voice='xiaoxiao'):
     """
-    生成单条音频并捕获 WordBoundary 同步数据。
+    Generate single audio and capture WordBoundary sync data.
 
-    返回:
+    Returns:
         (success, duration, sync_points)
-        sync_points: 句级同步点列表 [{idx, text, time}, ...]
+        sync_points: List of sentence-level sync points [{idx, text, time}, ...]
     """
     voice_id = VOICE_MAP.get(voice, VOICE_MAP['xiaoxiao'])
 
@@ -86,7 +86,7 @@ async def generate_audio(text, output_path, voice='xiaoxiao'):
 
 
 def get_audio_duration(audio_path):
-    """获取音频时长（秒）"""
+    """Get audio duration (seconds)"""
     try:
         from mutagen.mp3 import MP3
         audio = MP3(audio_path)
@@ -115,10 +115,10 @@ def get_audio_duration(audio_path):
 
 def build_sentence_sync_points(original_text, word_boundaries):
     """
-    根据原文的句号/问号/感叹号拆句，利用 WordBoundary 偏移量
-    计算每句话在音频中的起始时间。
+    Split sentences based on original text punctuation, and calculate
+    start time using WordBoundary offset.
 
-    返回: [{idx, text, time}, ...]
+    Returns: [{idx, text, time}, ...]
     """
     if not word_boundaries:
         return []
@@ -157,22 +157,22 @@ def build_sentence_sync_points(original_text, word_boundaries):
 
 def parse_csv(csv_path):
     """
-    解析 CSV 文件
+    Parse CSV file
 
-    支持格式：
-    - 标准 CSV: filename,text
-    - 带 BOM 的 UTF-8
-    - 不同分隔符（优先逗号，支持分号）
+    Supported formats:
+    - Standard CSV: filename,text
+    - UTF-8 with BOM
+    - Different delimiters (prioritize comma, supports semicolon)
     """
     entries = []
 
-    # 尝试不同编码
+    # Try different encodings
     encodings = ['utf-8-sig', 'utf-8', 'gbk', 'gb2312']
 
     for encoding in encodings:
         try:
             with open(csv_path, 'r', encoding=encoding) as f:
-                # 尝试检测分隔符
+                # Try detecting delimiter
                 sample = f.read(2048)
                 f.seek(0)
 
@@ -183,7 +183,7 @@ def parse_csv(csv_path):
                 reader = csv.DictReader(f, delimiter=delimiter)
 
                 for row in reader:
-                    # 支持不同的列名
+                    # Support different column names
                     filename = row.get('filename') or row.get('文件名') or row.get('file')
                     text = row.get('text') or row.get('对白') or row.get('content') or row.get('读白')
 
@@ -193,17 +193,17 @@ def parse_csv(csv_path):
                             'text': text.strip()
                         })
 
-            print(f"✓ 解析 CSV 成功 ({encoding}), 共 {len(entries)} 条")
+            print(f"✓ Parsed CSV successfully ({encoding}), {len(entries)} entries total")
             return entries
 
         except Exception as e:
             continue
 
-    # 如果都失败，尝试简单解析
+    # If all fail, try simple parsing
     try:
         with open(csv_path, 'r', encoding='utf-8') as f:
             lines = f.readlines()
-            for line in lines[1:]:  # 跳过标题行
+            for line in lines[1:]:  # Skip header
                 parts = line.strip().split(',', 1)
                 if len(parts) == 2:
                     entries.append({
@@ -211,44 +211,44 @@ def parse_csv(csv_path):
                         'text': parts[1].strip().strip('"')
                     })
         if entries:
-            print(f"✓ 简单解析 CSV 成功, 共 {len(entries)} 条")
+            print(f"✓ Simple CSV parsing successful, {len(entries)} entries total")
             return entries
     except:
         pass
 
-    print("Error: 无法解析 CSV 文件")
+    print("Error: Could not parse CSV file")
     return []
 
 
 async def generate_all(csv_path, output_dir, voice='xiaoxiao'):
-    """批量生成音频"""
-    # 解析 CSV
+    """Batch generate audio"""
+    # Parse CSV
     entries = parse_csv(csv_path)
     if not entries:
         return False
 
-    # 创建输出目录
+    # Create output directory
     os.makedirs(output_dir, exist_ok=True)
 
-    # 生成音频
+    # Generate audio
     results = []
     total = len(entries)
 
-    print(f"\n开始生成音频 (声音: {voice})...")
+    print(f"\nGenerating audio (voice: {voice})...")
     print("="*50)
 
     for i, entry in enumerate(entries, 1):
         filename = entry['filename']
         text = entry['text']
 
-        # 确保文件扩展名正确
+        # Ensure correct extension
         if not filename.endswith(('.wav', '.mp3')):
             filename += '.wav'
 
         output_path = os.path.join(output_dir, filename)
 
         print(f"[{i}/{total}] {filename}")
-        print(f"    文本: {text[:50]}{'...' if len(text) > 50 else ''}")
+        print(f"    Text: {text[:50]}{'...' if len(text) > 50 else ''}")
 
         success, duration, sync_points = await generate_audio(text, output_path, voice)
 
@@ -262,13 +262,13 @@ async def generate_all(csv_path, output_dir, voice='xiaoxiao'):
                 'sync_points': sync_points,
             }
             results.append(entry_result)
-            print(f"    ✓ 时长: {duration:.2f}s | 同步点: {len(sync_points)} 句")
+            print(f"    ✓ Duration: {duration:.2f}s | Sync points: {len(sync_points)} sentences")
         else:
-            print(f"    ✗ 失败")
+            print(f"    ✗ Failed")
 
         print()
 
-    # 生成 audio_info.json
+    # Generate audio_info.json
     if results:
         info = {
             'files': results,
@@ -281,14 +281,14 @@ async def generate_all(csv_path, output_dir, voice='xiaoxiao'):
         with open(info_path, 'w', encoding='utf-8') as f:
             json.dump(info, f, ensure_ascii=False, indent=2)
 
-        print(f"已生成: {info_path}")
+        print(f"Generated: {info_path}")
 
     return len(results) == len(entries)
 
 
 def extract_scene_number(filename):
-    """从文件名提取幕号"""
-    # 支持格式: audio_001_xxx.wav, scene_01_xxx.wav, 001_xxx.wav
+    """Extract scene number from filename"""
+    # Support formats: audio_001_xxx.wav, scene_01_xxx.wav, 001_xxx.wav
     import re
     match = re.search(r'\d+', filename)
     if match:
@@ -300,18 +300,18 @@ def main():
     if len(sys.argv) < 2:
         print("Usage: python generate_tts.py <csv_file> [output_dir] [options]")
         print("")
-        print("参数:")
-        print("  csv_file      CSV 文件路径")
-        print("  output_dir    输出目录 (默认: ./audio)")
+        print("Arguments:")
+        print("  csv_file      CSV file path")
+        print("  output_dir    Output directory (default: ./audio)")
         print("")
-        print("选项:")
-        print("  --voice VOICE 声音选择 (默认: xiaoxiao)")
+        print("Options:")
+        print("  --voice VOICE Voice selection (default: xiaoxiao)")
         print("")
-        print("可用声音:")
+        print("Available voices:")
         for k, v in VOICE_MAP.items():
             print(f"  {k:20s} - {v}")
         print("")
-        print("示例:")
+        print("Examples:")
         print("  python generate_tts.py audio_list.csv ./audio")
         print("  python generate_tts.py audio_list.csv ./audio --voice yunyang")
         sys.exit(1)
@@ -319,30 +319,30 @@ def main():
     csv_path = sys.argv[1]
     output_dir = sys.argv[2] if len(sys.argv) > 2 and not sys.argv[2].startswith('--') else "./audio"
 
-    # 解析选项
+    # Parse options
     voice = 'xiaoxiao'
     for i, arg in enumerate(sys.argv):
         if arg == '--voice' and i + 1 < len(sys.argv):
             voice = sys.argv[i + 1]
 
-    # 检查文件
+    # Check file
     if not os.path.exists(csv_path):
-        print(f"Error: CSV 文件不存在: {csv_path}")
+        print(f"Error: CSV file not found: {csv_path}")
         sys.exit(1)
 
-    print(f"CSV 文件: {csv_path}")
-    print(f"输出目录: {output_dir}")
-    print(f"使用声音: {voice}")
+    print(f"CSV File: {csv_path}")
+    print(f"Output Dir: {output_dir}")
+    print(f"Using Voice: {voice}")
     print("")
 
-    # 运行
+    # Run
     success = asyncio.run(generate_all(csv_path, output_dir, voice))
 
     if success:
-        print("\n✅ 全部生成成功！")
+        print("\n✅ All generated successfully!")
         sys.exit(0)
     else:
-        print("\n⚠️ 部分生成失败")
+        print("\n⚠️ Partial generation failed")
         sys.exit(1)
 
 

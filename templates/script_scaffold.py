@@ -1,18 +1,17 @@
 """
 Math Video Scene Scaffold
-数学教学视频场景脚手架
 
-根据分镜脚本和音频信息生成完整动画
+Generate complete animation based on storyboard and audio info
 
-使用方式：
-1. 复制此文件为 script.py
-2. 根据题目实现 TODO 部分
-3. 运行 manim -pqh script.py MathScene
+Usage:
+1. Copy this file as script.py
+2. Implement the TODO sections based on the math problem
+3. Run: manim -pqh script.py MathScene
 
-常见问题：
-- 渲染卡住：通常是音频文件问题，尝试禁用 add_scene_audio
-- deepcopy 错误：不要存储 self 引用到 Mobject 中
-- 视频未生成：检查 copy_video_to_root 路径是否正确
+Troubleshooting:
+- Rendering hangs: Usually an audio issue, try disabling add_scene_audio
+- deepcopy error: Do not store self references in Mobjects
+- Video not generated: Check if copy_video_to_root path is correct
 """
 
 from manim import *
@@ -22,16 +21,16 @@ import os
 
 class MathScene(Scene):
     """
-    数学教学视频场景
+    Math Teaching Video Scene
 
-    核心原则：
-    1. 数学先行 - 先建立正确的数学模型
-    2. 音画同步 - 用 wait_for_narration() 对齐高亮与读白
-    3. 高亮对应 - 配音提到什么，画面高亮什么
-    4. 最小验证 - assert_geometry 只验证关键事实和画布范围
+    Core Principles:
+    1. Math First - Build the correct mathematical model first
+    2. Audio-Visual Sync - Use wait_for_narration() to align highlights with voiceover
+    3. Highlight Mapping - Highlight whatever the voiceover mentions
+    4. Minimal Validation - assert_geometry only verifies key facts and canvas bounds
     """
 
-    # ========== 1. 配置参数 ==========
+    # ========== 1. Config Parameters ==========
     config.pixel_width = 1920
     config.pixel_height = 1080
     config.frame_rate = 60
@@ -47,11 +46,11 @@ class MathScene(Scene):
         'axis': '#444466',
     }
 
-    # ========== 2. 幕信息数组（从分镜读取） ==========
+    # ========== 2. Scene Info Array (Read from storyboard) ==========
     SCENES = [
-        # (幕号, 幕名, 音频文件名, 时长秒数)
-        # 时长从 audio/audio_info.json 读取
-        # TODO: 根据分镜脚本填写
+        # (Scene number, Scene name, Audio filename, Duration in seconds)
+        # Duration read from audio/audio_info.json
+        # TODO: Fill in based on storyboard
     ]
 
     def __init__(self, **kwargs):
@@ -65,9 +64,9 @@ class MathScene(Scene):
         self._audio_data = self._load_audio_data()
         self._sync_points = {}  # {scene_num: [{idx, text, time}, ...]}
 
-    # ========== 3. 音频管理 ==========
+    # ========== 3. Audio Management ==========
     def _load_audio_data(self):
-        """从 audio_info.json 加载音频时长和同步点"""
+        """Load audio duration and sync points from audio_info.json"""
         if not os.path.exists(self.audio_info_file):
             return {}
 
@@ -96,7 +95,7 @@ class MathScene(Scene):
         return timings
 
     def add_scene_audio(self, scene_num, play_audio=True):
-        """添加指定幕的音频"""
+        """Add audio for the specified scene"""
         for sn, name, audio_file, duration in self.SCENES:
             if sn == scene_num:
                 audio_path = os.path.join(self.audio_dir, audio_file)
@@ -111,9 +110,9 @@ class MathScene(Scene):
 
     def start_scene_with_audio(self, scene_num):
         """
-        开始一幕并播放该幕音频（防重叠入口）
+        Start a scene and play its audio (anti-overlap entry point)
 
-        返回：float - 该幕音频时长（秒）
+        Returns: float - The audio duration for the scene (seconds)
         """
         self._current_scene_num = scene_num
         self._scene_start_time = self.time
@@ -135,7 +134,7 @@ class MathScene(Scene):
         return expected
 
     def end_scene_with_audio(self, expected_duration=None, safety_margin=None):
-        """结束一幕并补足等待，确保不抢跑到下一幕导致音频重叠。"""
+        """End a scene and pad wait time, ensuring no early jump to next scene causing overlap."""
         if expected_duration is None:
             expected_duration = 0.0
         if safety_margin is None:
@@ -160,13 +159,13 @@ class MathScene(Scene):
                 f"elapsed={elapsed:.2f}s / target={target:.2f}s"
             )
 
-    # ========== 4. 幕内同步工具（核心） ==========
+    # ========== 4. Intra-Scene Sync Tools (Core) ==========
     def wait_until_scene_time(self, target_time):
         """
-        等待到当前幕内的指定时刻（相对于幕开始的秒数）。
+        Wait until the specified time within the current scene (seconds relative to scene start).
 
-        如果动画已超过目标时刻，打印警告但不回退。
-        用法：self.wait_until_scene_time(3.7)  # 等到幕开始后 3.7s
+        If animation exceeds target time, prints a warning but does not rewind.
+        Usage: self.wait_until_scene_time(3.7)  # Wait until 3.7s after scene starts
         """
         elapsed = self.time - self._scene_start_time
         remaining = target_time - elapsed
@@ -174,19 +173,19 @@ class MathScene(Scene):
             self.wait(remaining)
         elif remaining < -0.3:
             print(
-                f"  ⚠ 幕{self._current_scene_num} 动画超时 {abs(remaining):.2f}s"
-                f"（目标 {target_time:.1f}s，实际已 {elapsed:.1f}s）"
+                f"  ⚠ Scene {self._current_scene_num} animation timeout {abs(remaining):.2f}s "
+                f"(target {target_time:.1f}s, actual {elapsed:.1f}s)"
             )
 
     def wait_for_narration(self, keyword):
         """
-        等待到读白说出包含 keyword 的那句话的起始时刻。
+        Wait until the voiceover says the sentence containing the keyword.
 
-        从当前幕的 sync_points 中查找第一个 text 包含 keyword 的条目，
-        然后调用 wait_until_scene_time() 对齐。
+        Searches for the first entry containing the keyword from the current scene's sync_points,
+        then calls wait_until_scene_time() to align.
 
-        用法：
-            self.wait_for_narration("内切圆")
+        Usage:
+            self.wait_for_narration("incircle")
             self.play(FadeIn(incircle))
         """
         target = self.get_sync_time(keyword)
@@ -194,15 +193,15 @@ class MathScene(Scene):
             self.wait_until_scene_time(target)
         else:
             print(
-                f"  ⚠ 幕{self._current_scene_num} 未找到同步点 '{keyword}'，"
-                f"跳过等待（检查 audio_info.json 的 sync_points）"
+                f"  ⚠ Scene {self._current_scene_num} sync point '{keyword}' not found, "
+                f"skipping wait (check sync_points in audio_info.json)"
             )
 
     def get_sync_time(self, keyword):
         """
-        查找当前幕中包含 keyword 的同步点时间。
+        Find the sync point time containing the keyword in the current scene.
 
-        返回：float 秒数，未找到返回 None
+        Returns: float seconds, None if not found
         """
         points = self._sync_points.get(self._current_scene_num, [])
         for sp in points:
@@ -212,9 +211,9 @@ class MathScene(Scene):
 
     def get_sync_time_by_index(self, sentence_idx):
         """
-        按句子序号获取同步点时间（第 0 句、第 1 句...）。
+        Get sync point time by sentence index (0th sentence, 1st sentence...).
 
-        返回：float 秒数，未找到返回 None
+        Returns: float seconds, None if not found
         """
         points = self._sync_points.get(self._current_scene_num, [])
         for sp in points:
@@ -222,16 +221,16 @@ class MathScene(Scene):
                 return sp["time"]
         return None
 
-    # ========== 5. 几何计算（必须实现） ==========
+    # ========== 5. Geometry Calculation (Must implement) ==========
     def calculate_geometry(self):
         """
-        计算所有几何元素的位置和属性
+        Calculate positions and properties of all geometric elements
 
-        坐标系说明：
-        - 所有点的格式：(x, y) - z 坐标始终为 0
-        - 建议将几何图形放在 (-5, 5) x (-4, 4) 区域内
+        Coordinate system notes:
+        - Point format: (x, y) - z coordinate is always 0
+        - Recommended bounds for geometric shapes: (-5, 5) x (-4, 4)
 
-        返回：dict 包含所有几何对象的数据
+        Returns: dict containing data for all geometric objects
         """
         geometry = {
             'points': {},
@@ -240,23 +239,23 @@ class MathScene(Scene):
             'arcs': {},
             'polygons': {},
         }
-        # TODO: 【必须实现】根据题目几何关系计算所有点的坐标
+        # TODO: [Must Implement] Calculate all point coordinates based on problem geometry
         return geometry
 
-    # ========== 6. 几何验证（必须实现） ==========
+    # ========== 6. Geometry Validation (Must implement) ==========
     def assert_geometry(self, geometry):
         """
-        验证几何计算的正确性（最小验证原则）
+        Validate geometry calculation correctness (Minimal validation principle)
 
-        验证内容：
-        1. 题目给定的事实（如：两条边相等）
-        2. 精度问题：使用相对误差比较
-        3. 画布范围检查：确保图形在可视区域内
+        Validation checks:
+        1. Facts given by the problem (e.g. two edges are equal)
+        2. Precision issues: use relative error for comparisons
+        3. Canvas bounds check: Ensure shapes are within the visible area
         """
         def approx_equal(a, b, epsilon=1e-4):
             return abs(a - b) < epsilon
 
-        # TODO: 【必须实现】验证几何计算的正确性
+        # TODO: [Must Implement] Verify geometry correctness
 
         def check_canvas_bounds(geometry):
             all_points = list(geometry['points'].values())
@@ -277,23 +276,23 @@ class MathScene(Scene):
             CANVAS_MIN_Y, CANVAS_MAX_Y = -5, 5
             MARGIN = 0.5
 
-            assert min_x >= CANVAS_MIN_X + MARGIN, f"图形超出左边界：{min_x}"
-            assert max_x <= CANVAS_MAX_X - MARGIN, f"图形超出右边界：{max_x}"
-            assert min_y >= CANVAS_MIN_Y + MARGIN, f"图形超出下边界：{min_y}"
-            assert max_y <= CANVAS_MAX_Y - MARGIN, f"图形超出上边界：{max_y}"
+            assert min_x >= CANVAS_MIN_X + MARGIN, f"Shape exceeds left bound: {min_x}"
+            assert max_x <= CANVAS_MAX_X - MARGIN, f"Shape exceeds right bound: {max_x}"
+            assert min_y >= CANVAS_MIN_Y + MARGIN, f"Shape exceeds lower bound: {min_y}"
+            assert max_y <= CANVAS_MAX_Y - MARGIN, f"Shape exceeds upper bound: {max_y}"
 
             center_x = (min_x + max_x) / 2
             center_y = (min_y + max_y) / 2
-            assert abs(center_x) < 1.5, f"图形中心偏离 x 轴：{center_x}"
-            assert abs(center_y) < 1.0, f"图形中心偏离 y 轴：{center_y}"
+            assert abs(center_x) < 1.5, f"Shape center offset from x-axis: {center_x}"
+            assert abs(center_y) < 1.0, f"Shape center offset from y-axis: {center_y}"
             return True
 
         check_canvas_bounds(geometry)
         print("Geometry validation passed!")
 
-    # ========== 7. 图形元素定义 ==========
+    # ========== 7. Graphic Elements Definition ==========
     def define_elements(self, geometry):
-        """定义 Manim 图形对象（但不创建动画）"""
+        """Define Manim graphical objects (but do not create animations yet)"""
         elements = {
             'points': {},
             'lines': {},
@@ -304,12 +303,12 @@ class MathScene(Scene):
         def to_3d(p):
             return (p[0], p[1], 0.0)
 
-        # TODO: 根据分镜需求定义图形元素
+        # TODO: Define graphic elements based on storyboard requirements
         return elements
 
-    # ========== 8. 字幕工具 ==========
+    # ========== 8. Subtitle Tools ==========
     def create_subtitle(self, text, position=DOWN * 3.5):
-        """创建字幕对象"""
+        """Create subtitle object"""
         subtitle = Text(text, font_size=36, color=self.COLORS['text'])
         subtitle.to_edge(position)
         return subtitle
@@ -322,7 +321,7 @@ class MathScene(Scene):
 
     def show_subtitle_timed(self, text, duration, position=DOWN * 3.5,
                             fade_in_time=0.5, fade_out_time=0.5):
-        """显示字幕并在指定时间后自动退场"""
+        """Show subtitle and auto exit after specified duration"""
         subtitle = self.create_subtitle(text, position)
         self.play(self.fade_in(subtitle), run_time=fade_in_time)
         hold_time = max(0.0, duration - fade_in_time - fade_out_time)
@@ -331,16 +330,16 @@ class MathScene(Scene):
         return subtitle
 
     def show_subtitle_with_audio(self, text, audio_duration, position=DOWN * 3.5):
-        """显示字幕并持续到音频结束"""
+        """Show subtitle and keep it until audio finishes"""
         subtitle = self.create_subtitle(text, position)
         self.play(self.fade_in(subtitle), run_time=0.5)
         self.wait(max(0.0, audio_duration - 1.0))
         self.play(self.fade_out(subtitle), run_time=0.5)
         return subtitle
 
-    # ========== 9. 高亮工具 ==========
+    # ========== 9. Highlight Tools ==========
     def highlight_element(self, element, color=None, scale=1.3, duration=0.8):
-        """高亮指定元素"""
+        """Highlight specified element"""
         color = color or self.COLORS['highlight']
         original_color = element.get_color()
         self.play(
@@ -354,7 +353,7 @@ class MathScene(Scene):
         )
 
     def indicate_equal_lines(self, line1, line2, duration=1.2):
-        """指示两条线段相等（同时高亮）"""
+        """Indicate two lines are equal (highlight simultaneously)"""
         self.play(
             line1.animate.set_color(self.COLORS['highlight']).set_stroke(width=6),
             line2.animate.set_color(self.COLORS['highlight']).set_stroke(width=6),
@@ -367,9 +366,9 @@ class MathScene(Scene):
             run_time=0.5
         )
 
-    # ========== 10. 主流程 ==========
+    # ========== 10. Main Flow ==========
     def construct(self):
-        """主构造流程"""
+        """Main Construction Flow"""
         self.camera.background_color = self.COLORS['background']
 
         geometry = self.calculate_geometry()
@@ -388,7 +387,7 @@ class MathScene(Scene):
         self.copy_video_to_root()
 
     def copy_video_to_root(self):
-        """渲染完成后拷贝视频到项目根目录"""
+        """Copy video to project root after rendering"""
         import shutil
         from pathlib import Path
 
@@ -409,36 +408,36 @@ class MathScene(Scene):
             video_dst = Path(f"{scene_name}.mp4")
             try:
                 shutil.copy2(video_src, video_dst)
-                print(f"\n✓ 视频已拷贝到：{video_dst.absolute()}")
+                print(f"\n✓ Video copied to: {video_dst.absolute()}")
             except Exception as e:
-                print(f"\n⚠️ 视频拷贝失败：{e}")
+                print(f"\n⚠️ Video copy failed: {e}")
         else:
-            print(f"\n⚠️ 未找到视频文件")
+            print(f"\n⚠️ Video file not found")
 
 
-# ========== 使用说明 ==========
+# ========== Usage Instructions ==========
 """
-关键提醒：
-1. 所有几何计算必须在 calculate_geometry() 中完成
-2. assert_geometry() 必须检查画布范围
-3. 每幕必须通过 start_scene_with_audio()/end_scene_with_audio() 统一收口
-4. 配音提到什么，画面就高亮什么
-5. 使用 wait_for_narration("关键词") 对齐读白和高亮时机——不要用 duration - N 手动估算
-6. 使用 wait_until_scene_time(秒数) 精确定位幕内时间点
-7. 使用 create_subtitle() 创建字幕，不要用 Subtitle 类
-8. 幕末收尾统一由 end_scene_with_audio() 自动补足，play_scene_X() 内不需要手动兜底
-9. 所有点坐标使用 2D (x, y)，define_elements 中用 to_3d() 转换
-10. 字幕退场：使用 show_subtitle_timed() 或 show_subtitle_with_audio() 确保文字退场
+Important Reminders:
+1. All geometry calculations must be done in calculate_geometry()
+2. assert_geometry() must check the canvas bounds
+3. Each scene must be wrapped by start_scene_with_audio()/end_scene_with_audio()
+4. Highlight whatever the voiceover mentions
+5. Use wait_for_narration("keyword") to align voice and highlights - do not manually estimate duration - N
+6. Use wait_until_scene_time(seconds) for precise timing within a scene
+7. Use create_subtitle() to create subtitles, do not use the Subtitle class
+8. The end of the scene is automatically padded by end_scene_with_audio(), no manual wait is needed in play_scene_X()
+9. All point coordinates use 2D (x, y); convert with to_3d() in define_elements
+10. Subtitle exit: Use show_subtitle_timed() or show_subtitle_with_audio() to ensure text exits
 
-同步对齐示例（推荐写法）：
+Sync alignment example (Recommended style):
     def play_scene_2(self, elements, geometry):
-        # 读白第1句："首先，我们来看三角形ABC"
-        self.wait_for_narration("三角形ABC")
+        # Narration sentence 1: "First, let's look at triangle ABC"
+        self.wait_for_narration("triangle ABC")
         self.play(Create(triangle, run_time=1.0))
 
-        # 读白第2句："它的内切圆I，分别切三条边"
-        self.wait_for_narration("内切圆")
+        # Narration sentence 2: "Its incircle I, tangent to the three sides"
+        self.wait_for_narration("incircle")
         self.play(FadeIn(incircle, run_time=0.5))
 
-        # 无需手动兜底——end_scene_with_audio() 会自动补齐
+        # No manual wait needed - end_scene_with_audio() will auto-pad
 """

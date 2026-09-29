@@ -1,12 +1,12 @@
 #!/usr/bin/env python3
 """
-Manim 教学视频代码检查脚本
-验证 script.py 是否包含必要的函数和结构
+Manim Teaching Video Code Check Script
+Verifies whether script.py contains necessary functions and structures
 
-使用方法:
+Usage:
     python scripts/check.py [script_file]
 
-默认检查 script.py，也可以指定其他文件
+Checks script.py by default, or another specified file.
 """
 
 import ast
@@ -16,21 +16,21 @@ from pathlib import Path
 
 
 class CodeChecker:
-    """代码结构检查器"""
+    """Code Structure Checker"""
 
-    # 必须包含的函数
+    # Required functions
     REQUIRED_FUNCTIONS = [
         'calculate_geometry',
         'assert_geometry',
         'define_elements',
     ]
 
-    # 推荐包含的函数（警告但不阻止）
+    # Recommended functions (warns but does not block)
     RECOMMENDED_FUNCTIONS = [
         'play_scene',
     ]
 
-    # 必须包含的类（内部类也算）
+    # Required classes (inner classes included)
     REQUIRED_CLASSES = [
         'Subtitle',
         'TitleSubtitle',
@@ -41,14 +41,14 @@ class CodeChecker:
         self.errors = []
         self.warnings = []
         self.tree = None
-        self.classes = {}  # 类名 -> 方法列表
-        self.class_method_calls = {}  # 类名 -> {方法名: set(调用名)}
-        self.scene_classes = set()  # 继承自 Scene 的类名
+        self.classes = {}  # class name -> method list
+        self.class_method_calls = {}  # class name -> {method name: set(call names)}
+        self.scene_classes = set()  # Classes inheriting from Scene
 
     def parse(self):
-        """解析 Python 文件"""
+        """Parse Python file"""
         if not self.file_path.exists():
-            self.errors.append(f"文件不存在: {self.file_path}")
+            self.errors.append(f"File not found: {self.file_path}")
             return False
 
         try:
@@ -57,18 +57,18 @@ class CodeChecker:
             self.tree = ast.parse(content)
             return True
         except SyntaxError as e:
-            self.errors.append(f"语法错误: {e}")
+            self.errors.append(f"Syntax error: {e}")
             return False
         except Exception as e:
-            self.errors.append(f"解析失败: {e}")
+            self.errors.append(f"Parse failed: {e}")
             return False
 
     def analyze(self):
-        """分析代码结构"""
+        """Analyze code structure"""
         if not self.tree:
             return
 
-        # 遍历顶层定义
+        # Iterate top-level definitions
         for node in ast.iter_child_nodes(self.tree):
             if isinstance(node, ast.ClassDef):
                 class_name = node.name
@@ -98,7 +98,7 @@ class CodeChecker:
                         method_calls[item.name] = calls
                     elif isinstance(item, ast.ClassDef):
                         inner_classes.append(item.name)
-                        # 也记录内部类的方法
+                        # Record inner class methods as well
                         inner_methods = [n.name for n in item.body
                                         if isinstance(n, ast.FunctionDef)]
                         self.classes[f"{class_name}.{item.name}"] = inner_methods
@@ -107,7 +107,7 @@ class CodeChecker:
                 self.class_method_calls[class_name] = method_calls
 
     def check_required_functions(self):
-        """检查必需函数是否存在"""
+        """Check if required functions exist"""
         all_methods = set()
         for class_name, methods in self.classes.items():
             all_methods.update(methods)
@@ -115,13 +115,13 @@ class CodeChecker:
         for func_name in self.REQUIRED_FUNCTIONS:
             if func_name not in all_methods:
                 self.errors.append(
-                    f"缺少必需函数: {func_name}()\n"
-                    f"  请在 MathScene 类中实现此方法\n"
-                    f"  作用: {self._get_function_description(func_name)}"
+                    f"Missing required function: {func_name}()\n"
+                    f"  Please implement this method in MathScene class\n"
+                    f"  Purpose: {self._get_function_description(func_name)}"
                 )
 
     def check_recommended_functions(self):
-        """检查推荐函数"""
+        """Check for recommended functions"""
         all_methods = set()
         for class_name, methods in self.classes.items():
             all_methods.update(methods)
@@ -129,13 +129,13 @@ class CodeChecker:
         for func_name in self.RECOMMENDED_FUNCTIONS:
             if func_name not in all_methods:
                 self.warnings.append(
-                    f"缺少推荐函数: {func_name}()\n"
-                    f"  建议实现以更好地控制每幕动画"
+                    f"Missing recommended function: {func_name}()\n"
+                    f"  Recommended to implement for better animation control per scene"
                 )
 
     def check_subtitle_classes(self):
-        """检查字幕类是否存在"""
-        # 检查 Subtitle 和 TitleSubtitle 是否作为内部类定义
+        """Check if subtitle classes exist"""
+        # Check if Subtitle and TitleSubtitle are defined as inner classes
         found_subtitle = False
         found_title = False
 
@@ -149,19 +149,19 @@ class CodeChecker:
 
         if not found_subtitle:
             self.warnings.append(
-                "未找到 Subtitle 类\n"
-                "  建议: 从 templates/script_scaffold.py 复制 Subtitle 类定义\n"
-                "  作用: 避免忘记渲染/退场导致的文字残留问题"
+                "Subtitle class not found\n"
+                "  Recommendation: Copy Subtitle class definition from templates/script_scaffold.py\n"
+                "  Purpose: Avoid text leftover issues due to forgotten render/exit"
             )
 
         if not found_title:
             self.warnings.append(
-                "未找到 TitleSubtitle 类\n"
-                "  建议: 从 templates/script_scaffold.py 复制 TitleSubtitle 类定义"
+                "TitleSubtitle class not found\n"
+                "  Recommendation: Copy TitleSubtitle class definition from templates/script_scaffold.py"
             )
 
     def check_scene_class(self):
-        """检查是否有场景类继承自 Scene"""
+        """Check if there is a class inheriting from Scene"""
         found_scene = False
         for node in ast.iter_child_nodes(self.tree):
             if isinstance(node, ast.ClassDef):
@@ -176,12 +176,12 @@ class CodeChecker:
 
         if not found_scene:
             self.errors.append(
-                "未找到继承自 Scene 的类\n"
-                "  必须有一个类继承自 Scene，例如: class MathScene(Scene):"
+                "Class inheriting from Scene not found\n"
+                "  There must be at least one class inheriting from Scene, e.g.: class MathScene(Scene):"
             )
 
     def check_add_sound(self):
-        """检查是否有 add_sound 调用（音频集成）"""
+        """Check for add_sound calls (audio integration)"""
         has_add_sound = False
 
         for node in ast.walk(self.tree):
@@ -197,16 +197,16 @@ class CodeChecker:
 
         if not has_add_sound:
             self.warnings.append(
-                "未检测到 add_sound() 调用\n"
-                "  提醒: 每幕动画应该添加对应的音频文件\n"
-                "  示例: self.add_sound('audio/audio_001_开场.wav')"
+                "No add_sound() call detected\n"
+                "  Reminder: Corresponding audio file should be added for each scene animation\n"
+                "  Example: self.add_sound('audio/audio_001_intro.wav')"
             )
 
     def check_audio_timeline_guards(self):
         """
-        检查音频时间轴护栏，避免出现音频重叠：
-        - 有分幕时，应使用 start_scene_with_audio / end_scene_with_audio
-        - 如果直接 add_sound，也应有明确的 wait_for_audio 或 end_scene_with_audio 兜底
+        Check audio timeline guards to avoid audio overlap:
+        - When scene splits exist, should use start_scene_with_audio / end_scene_with_audio
+        - If directly using add_sound, should also have explicit wait_for_audio or end_scene_with_audio guard
         """
         for class_name in self.scene_classes:
             methods = self.class_method_calls.get(class_name, {})
@@ -225,26 +225,26 @@ class CodeChecker:
 
             if has_play_scene_methods and not has_start_guard:
                 self.warnings.append(
-                    f"{class_name} 检测到 play_scene_* 分幕方法，但未使用 start_scene_with_audio()\n"
-                    "  建议: 在 construct() 中统一从 start_scene_with_audio() 开始每幕"
+                    f"{class_name} detected play_scene_* split methods, but start_scene_with_audio() not used\n"
+                    "  Recommendation: Uniformly start each scene from start_scene_with_audio() in construct()"
                 )
 
             if has_play_scene_methods and not has_end_guard:
                 self.errors.append(
-                    f"{class_name} 检测到分幕结构，但未找到 end_scene_with_audio()/wait_for_audio() 收尾\n"
-                    "  风险: 下一幕可能提前开始，导致上一幕音频与下一幕音频重叠"
+                    f"{class_name} detected split structure, but end_scene_with_audio()/wait_for_audio() wrap up not found\n"
+                    "  Risk: Next scene might start early, causing previous and next audio to overlap"
                 )
 
             if has_add_sound and not has_end_guard:
                 self.errors.append(
-                    f"{class_name} 使用了 add_sound()，但缺少音频收尾等待机制\n"
-                    "  建议: 使用 end_scene_with_audio(expected_duration) 或 wait_for_audio()"
+                    f"{class_name} used add_sound(), but missing audio wrap up wait mechanism\n"
+                    "  Recommendation: Use end_scene_with_audio(expected_duration) or wait_for_audio()"
                 )
 
     def check_sync_methods(self):
         """
-        检查是否使用了同步对齐方法（wait_for_narration / wait_until_scene_time）。
-        如果有 play_scene_* 方法但未使用任何同步方法，给出建议。
+        Check if sync alignment methods (wait_for_narration / wait_until_scene_time) are used.
+        If there are play_scene_* methods but no sync methods used, give recommendation.
         """
         for class_name in self.scene_classes:
             methods = self.class_method_calls.get(class_name, {})
@@ -267,15 +267,15 @@ class CodeChecker:
 
             if not has_any_sync:
                 self.warnings.append(
-                    f"{class_name} 的 play_scene_* 方法未使用 wait_for_narration() 或 wait_until_scene_time()\n"
-                    "  建议: 使用同步方法精确对齐读白和画面，而非 self.wait(duration - N) 手动估算\n"
-                    "  示例: self.wait_for_narration('内切圆') 会等到读白说到该关键词时刻"
+                    f"play_scene_* methods in {class_name} do not use wait_for_narration() or wait_until_scene_time()\n"
+                    "  Recommendation: Use sync methods to precisely align voiceover and visuals, instead of self.wait(duration - N) manual estimation\n"
+                    "  Example: self.wait_for_narration('incircle') will wait until voiceover reaches that keyword"
                 )
 
     def check_duration_minus_antipattern(self):
         """
-        检测 duration - N 反模式：在 play_scene_* 中使用
-        self.wait(max(..., duration - N)) 手动兜底。
+        Detect duration - N anti-pattern: used in play_scene_*
+        self.wait(max(..., duration - N)) manual fallback.
         """
         if not self.file_path.exists():
             return
@@ -294,34 +294,34 @@ class CodeChecker:
         matches = pattern.findall(source)
         if matches:
             self.warnings.append(
-                f"检测到 {len(matches)} 处 self.wait(max(..., duration - N)) 反模式\n"
-                "  问题: 手动计算剩余时长容易出错，增删动画时需重算\n"
-                "  建议: 删除手动兜底，改用 end_scene_with_audio() 自动补齐\n"
-                "  参考: play_scene_X() 内专注视觉动作，不需要手动兜底"
+                f"Detected {len(matches)} occurrences of self.wait(max(..., duration - N)) anti-pattern\n"
+                "  Issue: Manual remaining duration calculation is error-prone when adding/removing animations\n"
+                "  Recommendation: Remove manual fallback, switch to end_scene_with_audio() auto-pad\n"
+                "  Reference: play_scene_X() should focus on visual actions, no manual fallback needed"
             )
 
     def _get_function_description(self, func_name):
-        """获取函数描述"""
+        """Get function description"""
         descriptions = {
-            'calculate_geometry': '计算所有几何元素（点、线、圆）的坐标和属性',
-            'assert_geometry': '验证几何计算的正确性和画布范围',
-            'define_elements': '定义 Manim 图形对象（点、线、圆等）',
+            'calculate_geometry': 'Calculate coordinates and properties for all geometric elements (points, lines, circles)',
+            'assert_geometry': 'Verify correctness of geometry calculation and canvas bounds',
+            'define_elements': 'Define Manim graphical objects (points, lines, circles, etc.)',
         }
-        return descriptions.get(func_name, '未知功能')
+        return descriptions.get(func_name, 'Unknown function')
 
     def run(self):
-        """运行所有检查"""
-        print(f"🔍 检查文件: {self.file_path}")
+        """Run all checks"""
+        print(f"🔍 Checking file: {self.file_path}")
         print("=" * 50)
 
-        # 解析
+        # Parse
         if not self.parse():
             return False
 
-        # 分析
+        # Analyze
         self.analyze()
 
-        # 各项检查
+        # Various checks
         self.check_scene_class()
         self.check_required_functions()
         self.check_recommended_functions()
@@ -331,58 +331,58 @@ class CodeChecker:
         self.check_sync_methods()
         self.check_duration_minus_antipattern()
 
-        # 输出结果
+        # Output results
         return self.report()
 
     def report(self):
-        """输出检查报告"""
+        """Output check report"""
         success = len(self.errors) == 0
 
-        # 错误
+        # Errors
         if self.errors:
-            print("\n❌ 错误 (必须修复):")
+            print("\n❌ Errors (Must fix):")
             for i, error in enumerate(self.errors, 1):
                 print(f"\n  {i}. {error}")
 
-        # 警告
+        # Warnings
         if self.warnings:
-            print("\n⚠️  警告 (建议修复):")
+            print("\n⚠️  Warnings (Recommended to fix):")
             for i, warning in enumerate(self.warnings, 1):
                 print(f"\n  {i}. {warning}")
 
-        # 成功信息
+        # Success message
         if success and not self.warnings:
-            print("\n✅ 所有检查通过！可以开始渲染。")
+            print("\n✅ All checks passed! Ready to start rendering.")
         elif success:
-            print("\n✅ 必要检查通过，但有警告建议处理。")
+            print("\n✅ Required checks passed, but there are warnings recommended to be handled.")
 
         print("\n" + "=" * 50)
 
         if success:
-            print("🎬 下一步: 运行渲染命令")
+            print("🎬 Next step: Run render command")
             print(f"   manim -pqh {self.file_path} MathScene")
         else:
-            print("⛔ 检查失败，请修复错误后重试。")
+            print("⛔ Check failed, please fix errors and retry.")
 
         return success
 
 
 def main():
-    """主函数"""
-    # 获取要检查的文件
+    """Main function"""
+    # Get file to check
     if len(sys.argv) > 1:
         script_file = sys.argv[1]
     else:
         script_file = "script.py"
 
-    # 检查文件路径
+    # Check file path
     script_path = Path(script_file)
 
-    # 运行检查
+    # Run check
     checker = CodeChecker(script_path)
     success = checker.run()
 
-    # 返回退出码
+    # Return exit code
     sys.exit(0 if success else 1)
 
 
