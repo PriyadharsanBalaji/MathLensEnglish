@@ -40,8 +40,33 @@ with open(storyboard_file, "w", encoding="utf-8") as f:
 # STEP 4: Generate TTS Audio
 # ---------------------------------------------------------
 print("Generating TTS and Sync Points...")
+
+# We need to extract the markdown table into a CSV for generate_tts.py
+import csv
+csv_lines = [["filename", "text"]]
+in_table = False
+for line in storyboard_content.split("\n"):
+    line = line.strip()
+    if line.startswith("|") and "Filename" in line and "Narration Text" in line:
+        in_table = True
+        continue
+    if in_table and line.startswith("|") and "---" in line:
+        continue
+    if in_table and line.startswith("|"):
+        parts = [p.strip() for p in line.split("|")]
+        if len(parts) >= 4:
+            filename = parts[2]
+            text = parts[3].strip('"').strip("'")
+            csv_lines.append([filename, text])
+    elif in_table and not line:
+        in_table = False
+
+with open("audio_list.csv", "w", encoding="utf-8", newline="") as f:
+    writer = csv.writer(f)
+    writer.writerows(csv_lines)
+
 os.makedirs("audio", exist_ok=True)
-subprocess.run(["python", "scripts/generate_tts.py", storyboard_file, "./audio", "--voice", "xiaoxiao"])
+subprocess.run(["python", "scripts/generate_tts.py", "audio_list.csv", "./audio", "--voice", "xiaoxiao"])
 
 # ---------------------------------------------------------
 # STEP 5: Validate Audio
