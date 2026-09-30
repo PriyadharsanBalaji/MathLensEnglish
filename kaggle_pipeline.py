@@ -83,6 +83,8 @@ code_prompt = f"""
 You are an expert in Manim animation. I will give you a storyboard and a python scaffold.
 You must fill in the TODOs in the scaffold to create a working Manim scene called MathScene.
 
+CRITICAL INSTRUCTION: You MUST write actual animation code (like `self.play(...)`) inside the `play_scene_X` methods. DO NOT just write `pass` or leave them empty.
+
 Storyboard:
 {storyboard_content}
 
@@ -90,7 +92,8 @@ Scaffold:
 {scaffold}
 """
 
-response = ollama.chat(model='maternion/manim-coder', messages=[{'role': 'user', 'content': code_prompt}])
+print("Generating Manim Code with qwen2.5:14b...")
+response = ollama.chat(model='qwen2.5:14b', messages=[{'role': 'user', 'content': code_prompt}])
 manim_code = response['message']['content']
 
 if "```python" in manim_code:
